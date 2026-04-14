@@ -14,20 +14,21 @@ st.divider()
 
 # --- 💡 アップグレード: プリセット（お気に入り）機能 ---
 if "base_url" not in st.session_state: st.session_state.base_url = "https://example.com/folder/"
-if "targets" not in st.session_state: st.session_state.targets = "img/, logo.png, css/"
+if "targets" not in st.session_state: st.session_state.targets = "img/, index2.html"
 
 def set_preset_1():
-    st.session_state.base_url = "https://cdn.example.com/assets/"
-    st.session_state.targets = "images/, js/, css/, style.css"
+    st.session_state.base_url = "https://example.com/sample1/"
+    st.session_state.targets = "img/, index2.html"
 
 def set_preset_2():
-    st.session_state.base_url = "https://shop.com/theme/"
-    st.session_state.targets = "product/, banner.jpg, icon.png"
+    st.session_state.base_url = "https://example.com/sample2/"
+    st.session_state.targets = "img/, index2.html"
 
 st.markdown("**💡 よく使う設定（クリックで一発入力）**")
 col_preset1, col_preset2, _ = st.columns([1, 1, 4])
-with col_preset1: st.button("📁 プリセット: 企業サイト用", on_click=set_preset_1, use_container_width=True)
-with col_preset2: st.button("🛒 プリセット: ECサイト用", on_click=set_preset_2, use_container_width=True)
+# ボタンの名前を「sample 1」「sample 2」に変更！
+with col_preset1: st.button("📁 sample 1", on_click=set_preset_1, use_container_width=True)
+with col_preset2: st.button("🛒 sample 2", on_click=set_preset_2, use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # --- メイン画面 ---
