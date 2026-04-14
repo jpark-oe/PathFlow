@@ -2,64 +2,96 @@
 import streamlit as st
 from urllib.parse import urljoin
 import pandas as pd
+import zipfile
+import io
 
-st.set_page_config(page_title="PathFlow Pro", page_icon="🌐", layout="wide")
+# --- ページ設定 ---
+st.set_page_config(page_title="PathFlow Pro 2.0", page_icon="🚀", layout="wide")
 
-st.title("🌐 PathFlow Pro (Web Version)")
-st.markdown("ファイル内のURLパスを基準URLをもとに一括で双方向変換（相対 ↔ 絶対）します。")
+st.title("🚀 PathFlow Pro 2.0 (Ultimate Edition)")
+st.markdown("複数のファイルを一括変換し、ZIPでまとめてダウンロードできるプロ仕様バージョンです。")
 st.divider()
 
+# --- 💡 アップグレード: プリセット（お気に入り）機能 ---
+if "base_url" not in st.session_state: st.session_state.base_url = "https://example.com/folder/"
+if "targets" not in st.session_state: st.session_state.targets = "img/, logo.png, css/"
+
+def set_preset_1():
+    st.session_state.base_url = "https://cdn.example.com/assets/"
+    st.session_state.targets = "images/, js/, css/, style.css"
+
+def set_preset_2():
+    st.session_state.base_url = "https://shop.com/theme/"
+    st.session_state.targets = "product/, banner.jpg, icon.png"
+
+st.markdown("**💡 よく使う設定（クリックで一発入力）**")
+col_preset1, col_preset2, _ = st.columns([1, 1, 4])
+with col_preset1: st.button("📁 プリセット: 企業サイト用", on_click=set_preset_1, use_container_width=True)
+with col_preset2: st.button("🛒 プリセット: ECサイト用", on_click=set_preset_2, use_container_width=True)
+st.markdown("<br>", unsafe_allow_html=True)
+
+# --- メイン画面 ---
 col1, col2 = st.columns([1, 1.2])
 
 with col1:
     st.subheader("⚙️ 変換設定")
-    base_url = st.text_input("1. 基準URL (Base URL)", "https://example.com/folder/")
+    base_url = st.text_input("1. 基準URL (Base URL)", key="base_url")
     mode = st.selectbox("2. 変換モード", ["相対 -> 絶対 (Relative to Absolute)", "絶対 -> 相対 (Absolute to Relative)"])
-    targets = st.text_input("3. 変換対象キーワード (カンマ区切り)", "img/, index2.html")
+    targets = st.text_input("3. 変換対象キーワード (カンマ区切り)", key="targets")
 
 with col2:
-    st.subheader("📂 ファイルアップロード")
-    uploaded_file = st.file_uploader("ここにファイルをドラッグ＆ドロップ", type=["html", "css", "js", "txt"])
+    st.subheader("📂 ファイル一括アップロード")
+    # 💡 アップグレード: 複数ファイル選択可能に！ (accept_multiple_files=True)
+    uploaded_files = st.file_uploader("ここに複数のファイルをドラッグ＆ドロップ", type=["html", "css", "js", "txt"], accept_multiple_files=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-if uploaded_file and st.button("🚀 変換を実行する", use_container_width=True):
+# --- 実行処理 ---
+if uploaded_files and st.button("🚀 一括変換を実行する", use_container_width=True):
     if not targets.strip():
         st.warning("⚠️ 変換対象キーワードを入力してください。")
     else:
-        with st.spinner("変換中..."):
-            content = uploaded_file.getvalue().decode("utf-8")
+        with st.spinner("全ファイルを一括変換中..."):
             target_list = [t.strip() for t in targets.split(",") if t.strip()]
-            logs = []
+            all_logs = []
+            
+            # 💡 アップグレード: ZIPファイル作成の準備
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                
+                # アップロードされた全ファイルを順番に処理
+                for uploaded_file in uploaded_files:
+                    content = uploaded_file.getvalue().decode("utf-8")
+                    
+                    for t in target_list:
+                        if "相対 -> 絶対" in mode:
+                            search_str = t
+                            replace_str = urljoin(base_url, t)
+                        else:
+                            search_str = urljoin(base_url, t)
+                            replace_str = t
 
-            for t in target_list:
-                if "相対 -> 絶対" in mode:
-                    # 相対 -> 絶対: 'img/' を 'https://.../img/' に置換
-                    search_str = t
-                    replace_str = urljoin(base_url, t)
-                else:
-                    # 絶対 -> 相対: 'https://.../img/' を 'img/' に置換 (基準URLを削除)
-                    search_str = urljoin(base_url, t)
-                    replace_str = t
+                        if search_str in content:
+                            content = content.replace(search_str, replace_str)
+                            all_logs.append({"ファイル名": uploaded_file.name, "ターゲット": t, "検索文字列": search_str, "変換後": replace_str, "状態": "✅ 完了"})
+                        else:
+                            all_logs.append({"ファイル名": uploaded_file.name, "ターゲット": t, "検索文字列": search_str, "変換後": "-", "状態": "❓ 未検出"})
 
-                # ファイル内に該当する文字列があるか確認して置換
-                if search_str in content:
-                    content = content.replace(search_str, replace_str)
-                    logs.append({"ターゲット": t, "検索した文字列": search_str, "変換後のパス": replace_str, "ステータス": "✅ 置換完了"})
-                else:
-                    logs.append({"ターゲット": t, "検索した文字列": search_str, "変換後のパス": "-", "ステータス": "❓ 未検出"})
+                    # 変換したファイルデータをZIPのなかに保存
+                    zip_file.writestr(f"pf_{uploaded_file.name}", content)
 
-            st.success("✅ ファイルの変換が完了しました！下のボタンからダウンロードしてください。")
+            st.success(f"✅ {len(uploaded_files)}個のファイル一括変換が完了しました！")
 
             res_col1, res_col2 = st.columns([1.5, 1])
             with res_col1:
-                # ログをデータフレームで綺麗に表示
-                st.dataframe(pd.DataFrame(logs), use_container_width=True)
+                # ログ表示もファイル名付きで分かりやすく！
+                st.dataframe(pd.DataFrame(all_logs), use_container_width=True)
             with res_col2:
+                # 💡 アップグレード: ZIPで一括ダウンロード！
                 st.download_button(
-                    label=f"💾 変換済みファイルを保存 (pf_{uploaded_file.name})",
-                    data=content,
-                    file_name=f"pf_{uploaded_file.name}",
-                    mime="text/plain",
+                    label="📦 変換済みファイルをZIPで一括ダウンロード",
+                    data=zip_buffer.getvalue(),
+                    file_name="PathFlow_Converted.zip",
+                    mime="application/zip",
                     use_container_width=True
                 )
