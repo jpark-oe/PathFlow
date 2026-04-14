@@ -8,7 +8,7 @@ import io
 # --- ページ設定 ---
 st.set_page_config(page_title="PathFlow Pro 2.0", page_icon="🚀", layout="wide")
 
-st.title("🚀 PathFlow Pro 2.0 (Ultimate Edition)")
+st.title("🚀 PathFlow Pro 2.0")
 st.markdown("複数のファイルを一括変換し、ZIPでまとめてダウンロードできるプロ仕様バージョンです。")
 st.divider()
 
