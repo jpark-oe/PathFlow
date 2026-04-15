@@ -79,7 +79,7 @@ if uploaded_files and st.button("🚀 一括変換を実行する", use_containe
                             all_logs.append({"ファイル名": uploaded_file.name, "ターゲット": t, "検索文字列": search_str, "変換後": "-", "状態": "❓ 未検出"})
 
                     # 変換したファイルデータをZIPのなかに保存
-                    zip_file.writestr(f"pf_{uploaded_file.name}", content)
+                    zip_file.writestr(uploaded_file.name, content)
 
             st.success(f"✅ {len(uploaded_files)}個のファイル一括変換が完了しました！")
 
